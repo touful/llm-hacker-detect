@@ -5,7 +5,9 @@ from operator import index
 import numpy as np
 
 
-NAMES = (
+from .classical import SUITE
+
+DEFAULT_NAMES = (
     "conv-hgb",
     "dist-hgb",
     "dist-et",
@@ -18,6 +20,7 @@ NAMES = (
     "bag-hgb",
     "view-fusion",
 )
+NAMES = tuple(dict.fromkeys((*DEFAULT_NAMES, *SUITE)))
 _SHAPES = {"conv": (145,), "dist": (2190,), "bins": (16, 103), "style": (24,)}
 
 
@@ -28,7 +31,7 @@ def _view(X, key):
     return a
 
 
-def _tabular(name, seed):
+def _tabular(name, seed, counts):
     if name.endswith("-hgb"):
         from sklearn.ensemble import HistGradientBoostingClassifier
 
@@ -41,7 +44,7 @@ def _tabular(name, seed):
             random_state=seed,
             early_stopping=False,
         )
-    if name == "dist-et":
+    if name.endswith("-et"):
         from sklearn.ensemble import ExtraTreesClassifier
 
         return ExtraTreesClassifier(
@@ -51,6 +54,10 @@ def _tabular(name, seed):
             random_state=seed,
             n_jobs=4,
         )
+    if not name.endswith("-linear"):
+        from .classical import additional_estimator
+
+        return additional_estimator(name.split("-")[-1], seed, counts)
     from sklearn.linear_model import LogisticRegression
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
@@ -119,7 +126,11 @@ class _Model:
             if self._sequence:
                 self.estimator_ = self._fit_network(arrays, ids, y)
             else:
-                self.estimator_ = _tabular(self.name, self.seed).fit(
+                counts = np.bincount(y[ids].astype(int), minlength=2)
+                if self.name.endswith("-rbf") and counts.min() < 2:
+                    self._fitted = True
+                    return self
+                self.estimator_ = _tabular(self.name, self.seed, counts).fit(
                     arrays[0][ids], y[ids]
                 )
         self._fitted = True

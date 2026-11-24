@@ -4,7 +4,8 @@ import unittest
 
 import numpy as np
 
-from agenttrace.models import NAMES, create
+from agenttrace.models import DEFAULT_NAMES, NAMES, create
+from agenttrace.classical import SUITE
 
 
 class ModelTests(unittest.TestCase):
@@ -25,7 +26,7 @@ class ModelTests(unittest.TestCase):
 
     def test_registry(self):
         self.assertEqual(
-            set(NAMES),
+            set(DEFAULT_NAMES),
             {
                 "conv-hgb",
                 "dist-hgb",
@@ -40,6 +41,8 @@ class ModelTests(unittest.TestCase):
                 "header-gru",
             },
         )
+        self.assertEqual(len(SUITE), 20)
+        self.assertEqual(set(NAMES), set(DEFAULT_NAMES) | set(SUITE))
         with self.assertRaises(ValueError):
             create("unknown")
         with self.assertRaises(RuntimeError):

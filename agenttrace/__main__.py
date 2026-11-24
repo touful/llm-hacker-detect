@@ -8,7 +8,8 @@ from pathlib import Path
 import sys
 from time import perf_counter
 import numpy as np
-from .models import NAMES
+from .models import DEFAULT_NAMES, NAMES
+from .classical import SUITE
 
 
 def extract(args):
@@ -95,7 +96,13 @@ def main():
     v = sub.add_parser("evaluate")
     v.add_argument("cache", type=Path)
     v.add_argument("--out", required=True, type=Path)
-    v.add_argument("--models", nargs="+", choices=NAMES, default=NAMES)
+    group = v.add_mutually_exclusive_group()
+    group.add_argument("--models", nargs="+", choices=NAMES, default=DEFAULT_NAMES)
+    group.add_argument(
+        "--classical",
+        action="store_true",
+        help="10 classical classifiers on both feature views",
+    )
     v.add_argument("--epochs", type=int, default=12)
     v.add_argument("--batch-size", type=int, default=32)
     v.add_argument("--seed", type=int, default=42)
@@ -122,7 +129,7 @@ def main():
             z["fold"],
             z["files"],
             X,
-            args.models,
+            SUITE if args.classical else args.models,
             args.out,
             args.seed,
             args.epochs,
