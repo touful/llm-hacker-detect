@@ -4,6 +4,8 @@
 
 ## 已有结果
 
+论文主实验见 [全库前缀、开发集消融与确认集结果](docs/study.md) 及 [运行前固定的协议](docs/study-protocol.md)。此前的整场结果是 533 场开发子集，不与 4,795 场确认集作同条件比较。
+
 新增：[十种传统分类器 × 两套特征的固定配置横向比较](docs/classical.md)。使用 `evaluate --classical` 可单独复跑，不改变默认模型列表。
 
 已从 5,328 场按 label × fold 以 seed 42 抽 10%（533 场，362/171）。相同 533 场读到 EOF、测试 11 个模型；另有前 2,048 条原始记录的 9 模型预算对照。见 [指标表](docs/pilot.md)、[文献](docs/literature.md)、[列口径及解析边界](docs/features.md)、[模型](docs/models.md)、[指标及划分](docs/metrics.md)。不把原 fold 当作已知题目分组。实现遵循提供的尺寸、结构及树参数；未提供的列定义与训练设置在文档中显式固定，不等价于前期成绩复现。

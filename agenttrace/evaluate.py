@@ -148,10 +148,13 @@ def _json(path, obj):
     path.write_text(json.dumps(obj, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
-def evaluate(y, folds, files, X, names, out, seed=42, epochs=12, batch_size=32):
+def evaluate(
+    y, folds, files, X, names, out, seed=42, epochs=12, batch_size=32, *, factory=None
+):
     """Fit one fresh model per test fold and return the serialized summary as a dict."""
     from .models import create
 
+    factory = create if factory is None else factory
     y, folds = np.asarray(y), np.asarray(folds)
     if y.ndim != 1 or not np.isin(y, [0, 1]).all():
         raise ValueError("y must be a vector of binary 0/1 labels")
@@ -192,7 +195,7 @@ def evaluate(y, folds, files, X, names, out, seed=42, epochs=12, batch_size=32):
             val = np.flatnonzero(folds == val_fold)
             train = np.flatnonzero((folds != val_fold) & (folds != test_fold))
             t0 = perf_counter()
-            model = create(name, seed=seed + i, epochs=epochs, batch_size=batch_size)
+            model = factory(name, seed=seed + i, epochs=epochs, batch_size=batch_size)
             model.fit(subset(train), y[train])
             t1 = perf_counter()
             vp = _scores(model.predict(subset(val)), len(val))
