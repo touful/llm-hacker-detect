@@ -1,24 +1,40 @@
-# AgentTrace：Web CTF 会话来源分类
+# AgentTrace：Web CTF 解题会话的网络来源归因
 
-二分类：0 人类主导，1 AI Agent 主导，每个 PCAP 是一个样本。项目只离线读本地 PCAP，输出聚合特征、概率、指标。不要用分数单独认定个人行为。
+给定一份 Web CTF 抓包，判断该场解题由人类（0）还是 AI Agent（1）主导。样本单位是 **PCAP 文件**，不是请求、题目或操作者。输出用于筛选值得复核的会话，不直接认定个人行为。
 
-## 已有结果
+**写论文从[写作交接](docs/writing-guide.md)开始，取数用[主实验表](docs/study.md)。** 方法定义、历史附表和复跑入口如下。只阅读本仓库即可理解正文结果；重算指标或训练还需本地运行产物或原始数据。
 
-论文主实验见 [全库前缀、开发集消融与确认集结果](docs/study.md) 及 [运行前固定的协议](docs/study-protocol.md)。此前的整场结果是 533 场开发子集，不与 4,795 场确认集作同条件比较。
+|要回答的问题|文档|对应实现|
+|---|---|---|
+|样本如何划分？特征何时选定？|[运行前固定的协议](docs/study-protocol.md)|[study.py](agenttrace/study.py)|
+|抓包能看见什么？2,190 列代表什么？|[字段、分箱与可见性](docs/features.md)|[capture.py](agenttrace/capture.py) → [features.py](agenttrace/features.py) / [views.py](agenttrace/views.py)|
+|主模型、精简模型与基线是什么关系？|[模型与入口](docs/models.md)|[models.py](agenttrace/models.py)、[ablation.py](agenttrace/ablation.py)、[classical.py](agenttrace/classical.py)、[networks.py](agenttrace/networks.py)|
+|低误报阈值、共同支持集和拒评怎么算？|[指标定义](docs/metrics.md)|[evaluate.py](agenttrace/evaluate.py)|
+|正文中的表格来自哪里？|[主实验表](docs/study.md)：开发消融、确认、成对比较、客户端分层|[study_report.py](agenttrace/study_report.py) 从现有结果生成，不训练模型|
+|早期还比较过什么？|[开发集传统模型矩阵](docs/classical.md)、[开发集树与神经网络](docs/pilot.md)|[命令行](agenttrace/__main__.py) 的 `evaluate --classical`、`evaluate --models`|
+|哪些文献支持任务或方法设计？|[文献笔记](docs/literature.md)|定向调研，不是本项目的测量结果|
 
-新增：[十种传统分类器 × 两套特征的固定配置横向比较](docs/classical.md)。使用 `evaluate --classical` 可单独复跑，不改变默认模型列表。
+## 两种观察预算，不是两份独立数据集
 
-已从 5,328 场按 label × fold 以 seed 42 抽 10%（533 场，362/171）。相同 533 场读到 EOF、测试 11 个模型；另有前 2,048 条原始记录的 9 模型预算对照。见 [指标表](docs/pilot.md)、[文献](docs/literature.md)、[列口径及解析边界](docs/features.md)、[模型](docs/models.md)、[指标及划分](docs/metrics.md)。不把原 fold 当作已知题目分组。实现遵循提供的尺寸、结构及树参数；未提供的列定义与训练设置在文档中显式固定，不等价于前期成绩复现。
+`../labels.csv` 和 `../pcap/` 是数据，不在代码仓库中。全库 **5,328 场的前缀**（每场最多 2,048 条原始记录）已提取。533 场开发集用于选特征；其余 4,795 场在原五折内重新训练与测试。**整场读至 EOF** 的实验只覆盖这 533 场；没有全库 EOF、跨题目或跨框架验证。
 
-## 本机复跑（PowerShell，先进入 attribution/）
+## 复核与复跑（本机 PowerShell，在 attribution/ 中）
+
+- **只复核数字**：本地 `runs/paper-study/` 存主研究的 `summary.json`、逐模型 `oof.csv`、选择文件 `lock.json`、成对比较 `comparisons.json`。这些不随 Git 分发；已跟踪的 `docs/study.md` 是报告快照。重生报告不需要重扫 PCAP：
+
+```powershell
+$paper='D:\software\program\miniconda\envs\py312\python.exe'
+& $paper -m agenttrace.study_report runs/paper-study runs/cohort2048.npz runs/full-session-pilot.npz --out runs/check-tables.md
+```
+
+- **重做主研究**：[主实验表末尾](docs/study.md)给出提取、研究和生成报告的命令。主实验用 Python 3.12、NumPy 2.4.3、scikit-learn 1.9.0，仅 CPU；若没有 533 场 EOF 缓存，先按下方历史环境的 `extract` 命令生成，再将该路径传给 `study` 和 `study_report`。
+- **重做开发集附表**：[requirements.txt](requirements.txt) 记录的是 Python 3.11 历史参考环境（NumPy 2.0.1、scikit-learn 1.8.0；神经网络用 CUDA），不是主研究的环境锁。`extract`、`evaluate`、`study`、`study_report` 均使用新输出路径，不覆盖现有结果。
 
 ```powershell
 $py='D:\software\program\miniconda\envs\torch_311\python.exe'
+& $py -m agenttrace extract --labels ../labels.csv --fraction 0.10 --seed 42 --out runs/repro-eof.npz
+& $py -m agenttrace evaluate runs/repro-eof.npz --classical --out runs/repro-classical
 & $py -m unittest discover -s tests -v
-& $py -m agenttrace extract --labels ../labels.csv --fraction 0.10 --out runs/repro.npz
-& $py -m agenttrace evaluate runs/repro.npz --out runs/repro-report
 ```
 
-输出必须使用新路径。全库版去掉 --fraction 0.10；若采用包预算，向 extract 传 --max-packets 2048 并独立命名缓存。树模型可仅传 --models dist-hgb dist-et；神经网络用 CUDA。Python 3.11，见 requirements.txt。缓存只存特征/标签/折号/文件标识/各类事件数量及提取参数，可多次更换模型而不必再读抓包。正式全库尚未执行；先检查最大文件内存。每场计数及数据集索引不输入分类器，包数等显式行为特征除外。
-
-已有本地运行明细：runs/full-session-report/（九个完整抓包模型）、runs/full-extra/（两个补充对照）、runs/pilot-report/（九个包预算模型）。summary.json 含各折及汇总结果；每模型 oof.csv 保留未评分行。代码与摘要纳入本地版本控制，特征缓存、逐文件输出及原始数据不纳入。
+每个报告使用的缓存、环境和可引用范围见[写作交接](docs/writing-guide.md)。不要把不同运行目录下的最好成绩拼成一张排行榜。

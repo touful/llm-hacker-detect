@@ -1,6 +1,6 @@
 # Reading the evaluation results
 
-`evaluate(y, folds, files, X, names, out, seed=42, epochs=12, batch_size=32)` expects one aligned row per session: a binary label, an integer fold ID, a file identifier and one row in each feature array in the dictionary `X`. Class 1 is positive. File identifiers appear in the output but are not passed to models.
+`evaluate(y, folds, files, X, names, out, seed=42, epochs=12, batch_size=32, *, factory=None)` expects one aligned row per session: a binary label, an integer fold ID, a file identifier and one row in each feature array in the dictionary `X`. Class 1 is positive. File identifiers appear in the output but are not passed to models.
 
 ## What is held out?
 

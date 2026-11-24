@@ -1,6 +1,10 @@
-# 模型注册表
+# 模型注册表与实验角色
 
-公开入口 `create(name, seed, epochs, batch_size)`；fit 只看训练折，predict 返回正类概率，未观测为 NaN。以下名称与命令行一致。
+- **正文完整模型**：Dist24-HGB，即 `dist-hgb`；**精简模型**是同一个 HGB 的 `flags` 输入投影，只保留请求头的 90 个有向先后标志。字段是一次请求内的先后，不是预测请求的先后。
+- **研究专用名称**（如 `flags`、`no-explicit-pairs`）：由 [ablation.py](../agenttrace/ablation.py) 定义列集合，经 [study.py](../agenttrace/study.py) 的工厂交给评估器；不要传给通用 CLI 的 `evaluate --models`。确认集实际运行的是 flags、dist-hgb、dist-et、dist-gbdt、dist-linear、behavior-hgb。
+- **传统模型矩阵**：`evaluate --classical`；十种分类器各有 conv/dist 两种输入。具体标记和参数见[传统模型附表](classical.md)。
+- **默认模型**：下表是 `evaluate` 默认的 11 个，不是全部可用配置或确认模型名单。通用入口 `create(name, seed, epochs, batch_size)`；fit 只看训练折，predict 返回正类分数，拒评为 NaN。
+
 
 |名称|实验变量|
 |---|---|

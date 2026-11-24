@@ -46,6 +46,8 @@ def render(root, cohort, pilot):
         "",
         "## 表2　确认集横向比较",
         "",
+        "共同集 AP 在所有列出模型都有分数的会话上计算；其余指标使用各模型自身可评分集。F1/MCC 用固定阈值 0.5；最后两列用验证折设定的阈值，展示实际测试误报率/检出率。",
+        "",
         "|模型|评分数|共同集 AP|自身 AP|自身 AUC|F1|MCC|Brier|实际 FPR/TPR（目标1%）|实际 FPR/TPR（目标5%）|",
         "|---|---:|---:|---:|---:|---:|---:|---:|---|---|",
     ]
@@ -68,7 +70,12 @@ def render(root, cohort, pilot):
             )
             + "|"
         )
+    main = cs["dist-hgb"]
+    support = main["metrics"]["support"]["by_class"]
+    cm = main["low_fpr"]["5"]["confusion"]
     lines += [
+        "",
+        f"完整模型在 5% 目标下误报 {cm['fp']}/{support['0']['scored']} 场可评分人类会话，检出 {cm['tp']}/{support['1']['scored']} 场可评分 Agent 会话。若包含拒评，以全部 {support['1']['n']} 场 Agent 为分母，正确告警占 {cm['tp'] / support['1']['n']:.1%}。",
         "",
         "## 表3　成对比较（仅共同可评分会话）",
         "",
